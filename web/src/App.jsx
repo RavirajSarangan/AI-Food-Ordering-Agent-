@@ -106,6 +106,28 @@ function MainApp({ isConvex }) {
   // Active Order for Real-time Tracking
   const [activeOrderId, setActiveOrderId] = useState(null);
 
+  // Automatically retrieve the default user if they already seeded the DB in a past session
+  const defaultUser = useQuery(api.orders.getDefaultUser);
+  
+  useEffect(() => {
+    if (defaultUser) {
+      setUserId(defaultUser.id);
+    }
+  }, [defaultUser]);
+
+  // Automatically fetch latest active order from Convex if voice assistant places it
+  const latestOrder = useQuery(
+    api.orders.getLatestOrder,
+    isConvex && userId ? { userId } : "skip"
+  );
+
+  useEffect(() => {
+    if (latestOrder && latestOrder.status !== "Delivered") {
+      setActiveOrderId(latestOrder._id);
+      setIsDrawerOpen(true); // Automatically open drawer to track order
+    }
+  }, [latestOrder, isConvex, userId]);
+
   // --- ElevenLabs Integration ---
   const conversation = useConversation({
     onConnect: () => {

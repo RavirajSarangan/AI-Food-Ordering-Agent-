@@ -142,3 +142,36 @@ export const getOrderStatus = query({
     };
   }
 });
+
+// Query to get the latest order for a user (used to auto-detect voice orders)
+export const getLatestOrder = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const order = await ctx.db
+      .query("orders")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .order("desc")
+      .first();
+    
+    if (!order) {
+      return null;
+    }
+    return {
+      ...order,
+      orderNumber: order._id.slice(-4).toUpperCase()
+    };
+  }
+});
+
+// Query to get the default user in the database (used to persist session across refreshes)
+export const getDefaultUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await ctx.db.query("users").first();
+    if (!user) return null;
+    return {
+      id: user._id,
+      name: user.name
+    };
+  }
+});
