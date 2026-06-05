@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "FoodHub Voice",
+    "slug": "foodhub-voice-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "FoodHub needs access to your microphone so you can place food orders by voice."
+      }
+    },
+    "android": {
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    }
+  }
+}
