@@ -20,7 +20,8 @@
     "lucide-react-native": "^0.395.0",
     "react-native-reanimated": "~3.10.1",
     "react-native-svg": "15.2.0",
-    "convex": "^1.12.2"
+    "convex": "^1.12.2",
+    "react-native-paper": "^5.12.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

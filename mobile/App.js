@@ -1,28 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
-  Text,
   View,
-  TouchableOpacity,
   ScrollView,
   SafeAreaView,
   StatusBar,
-  ActivityIndicator,
   Animated,
   Easing
 } from 'react-native';
 import { 
+  Provider as PaperProvider, 
+  MD3DarkTheme, 
+  Text as PaperText,
+  Card as PaperCard,
+  Button as PaperButton,
+  Chip as PaperChip,
+  ProgressBar as PaperProgressBar,
+  IconButton as PaperIconButton,
+  Divider as PaperDivider
+} from 'react-native-paper';
+import { 
   Mic, 
-  Trash2, 
-  ChevronDown, 
-  ShoppingCart, 
   MapPin, 
   Play, 
   RotateCcw, 
   CheckCircle2, 
   XCircle,
   Database,
-  RefreshCw
+  RefreshCw,
+  ShoppingCart,
+  Trash2
 } from 'lucide-react-native';
 
 // --- Convex Imports ---
@@ -42,19 +49,47 @@ const COLORS = {
   error: '#EF4444'
 };
 
+// --- Custom Material 3 Dark Theme ---
+const customTheme = {
+  ...MD3DarkTheme,
+  roundness: 3, // Premium modern slightly rounded corners
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: COLORS.primary,
+    onPrimary: COLORS.text,
+    primaryContainer: 'rgba(255, 90, 31, 0.15)',
+    onPrimaryContainer: COLORS.primary,
+    surface: COLORS.surface,
+    onSurface: COLORS.text,
+    background: COLORS.bg,
+    onBackground: COLORS.text,
+    error: COLORS.error,
+    elevation: {
+      ...MD3DarkTheme.colors.elevation,
+      level1: '#1A1C20',
+      level2: '#24262A',
+      level3: '#2D2F34'
+    }
+  }
+};
+
 const CONVEX_URL = process.env.EXPO_PUBLIC_CONVEX_URL || "";
 
-// Wrapper Component to configure Convex conditionally
+// Wrapper Component to configure Convex & Paper theme conditionally
 export default function App() {
-  if (CONVEX_URL) {
-    const convexClient = new ConvexReactClient(CONVEX_URL);
-    return (
-      <ConvexProvider client={convexClient}>
-        <MainApp isConvex={true} />
-      </ConvexProvider>
-    );
-  }
-  return <MainApp isConvex={false} />;
+  const content = CONVEX_URL ? (
+    <ConvexProvider client={new ConvexReactClient(CONVEX_URL)}>
+      <MainApp isConvex={true} />
+    </ConvexProvider>
+  ) : (
+    <MainApp isConvex={false} />
+  );
+
+  return (
+    <PaperProvider theme={customTheme}>
+      {content}
+    </PaperProvider>
+  );
 }
 
 function MainApp({ isConvex }) {
@@ -81,7 +116,7 @@ function MainApp({ isConvex }) {
   // Active Order for Tracking
   const [activeOrderId, setActiveOrderId] = useState(null);
 
-  // Animation Values
+  // Animation Values for Custom Voice Orb
   const [pulseAnim] = useState(new Animated.Value(1));
   const [rotateAnim] = useState(new Animated.Value(0));
 
@@ -208,7 +243,6 @@ function MainApp({ isConvex }) {
     setCaption("Submitting order to Convex...");
 
     try {
-      // Create user if not seeded
       let activeUserId = userId;
       if (!activeUserId) {
         setCaption("No active user found. Seeding first...");
@@ -217,7 +251,6 @@ function MainApp({ isConvex }) {
         setUserId(activeUserId);
       }
 
-      // If restaurant ID is not determined, search for ABC Biryani House
       let activeRestId = restaurantId;
       if (!activeRestId) {
         const searchResult = await convex.query(api.menu.searchFood, { q: "biryani" });
@@ -229,7 +262,6 @@ function MainApp({ isConvex }) {
         }
       }
 
-      // Map cart to Convex ID validated items
       const orderItems = cart.map(item => ({
         menuItemId: item.menuItemId,
         name: item.name,
@@ -255,7 +287,7 @@ function MainApp({ isConvex }) {
     }
   };
 
-  // --- Simulate Voice Scenarios (handles both Convex query & offline mock modes) ---
+  // --- Simulate Voice Scenarios ---
   const runScenarioOrder = async () => {
     clearCart();
     setVoiceState('listening');
@@ -268,7 +300,6 @@ function MainApp({ isConvex }) {
 
       if (isConvex) {
         try {
-          // Imperative query using Convex Client
           const searchResult = await convex.query(api.menu.searchFood, { q: "biryani" });
           if (searchResult.length > 0) {
             const match = searchResult[0];
@@ -285,7 +316,6 @@ function MainApp({ isConvex }) {
           setVoiceState('error');
         }
       } else {
-        // Offline Mock Fallback
         setRestaurant("ABC Biryani House");
         setTimeout(() => {
           setVoiceState('speaking');
@@ -305,7 +335,7 @@ function MainApp({ isConvex }) {
       setCaption("Updating cart...");
 
       let itemConfig = {
-        menuItemId: "m1", // mock ID
+        menuItemId: "m1",
         name: "Chicken Biryani",
         size: "large",
         price: 1400
@@ -325,7 +355,7 @@ function MainApp({ isConvex }) {
             };
           }
         } catch (e) {
-          console.warn("Failed to query sizes from Convex, using fallback.");
+          console.warn("Failed to query sizes from Convex.");
         }
       }
 
@@ -345,7 +375,7 @@ function MainApp({ isConvex }) {
       setCaption("Adding beverage...");
 
       let drinkConfig = {
-        menuItemId: "m3", // mock ID
+        menuItemId: "m3",
         name: "Coke",
         size: "regular",
         price: 200
@@ -383,7 +413,6 @@ function MainApp({ isConvex }) {
       if (isConvex) {
         submitOrderToConvex();
       } else {
-        // Offline Mock Simulation
         setVoiceState('tool_running');
         setCaption("Creating your order in the kitchen...");
         setTimeout(() => {
@@ -402,7 +431,7 @@ function MainApp({ isConvex }) {
       case 'tool_running': return COLORS.accent;
       case 'success': return COLORS.success;
       case 'error': return COLORS.error;
-      default: return '#374151';
+      default: return '#4B5563';
     }
   };
 
@@ -413,33 +442,35 @@ function MainApp({ isConvex }) {
       {/* --- HEADER --- */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>FoodHub AI</Text>
+          <PaperText variant="titleLarge" style={styles.headerTitle}>FoodHub AI</PaperText>
           <View style={styles.badgeRow}>
-            <View style={[styles.dbBadge, { backgroundColor: isConvex ? 'rgba(34, 197, 94, 0.15)' : 'rgba(156, 163, 175, 0.15)' }]}>
-              <Database size={10} color={isConvex ? COLORS.success : COLORS.muted} />
-              <Text style={[styles.dbBadgeText, { color: isConvex ? COLORS.success : COLORS.muted }]}>
-                {isConvex ? "Convex DB Connected" : "Demo Mode"}
-              </Text>
-            </View>
+            <PaperChip 
+              icon={() => <Database size={12} color={isConvex ? COLORS.success : COLORS.muted} />}
+              style={[styles.dbChip, { backgroundColor: isConvex ? 'rgba(34, 197, 94, 0.12)' : 'rgba(156, 163, 175, 0.12)' }]}
+              textStyle={[styles.dbChipText, { color: isConvex ? COLORS.success : COLORS.muted }]}
+            >
+              {isConvex ? "Convex DB" : "Demo Mode"}
+            </PaperChip>
+            
             <View style={styles.locationContainer}>
               <MapPin size={10} color={COLORS.primary} />
-              <Text style={styles.locationText}>Colombo</Text>
+              <PaperText variant="bodySmall" style={styles.locationText}>Colombo</PaperText>
             </View>
           </View>
         </View>
 
         <View style={styles.headerRight}>
           {isConvex && (
-            <TouchableOpacity 
-              style={styles.seedBtn} 
+            <PaperButton 
+              mode="contained-tonal"
+              icon={() => <RefreshCw size={12} color={COLORS.primary} />}
               onPress={handleSeedDatabase}
               disabled={seeding}
+              style={styles.seedBtn}
+              labelStyle={styles.seedBtnLabel}
             >
-              <Animated.View style={seeding ? { transform: [{ rotate: spin }] } : {}}>
-                <RefreshCw size={12} color={COLORS.text} />
-              </Animated.View>
-              <Text style={styles.seedBtnText}>Seed DB</Text>
-            </TouchableOpacity>
+              Seed DB
+            </PaperButton>
           )}
           
           {/* Language Selector */}
@@ -448,7 +479,7 @@ function MainApp({ isConvex }) {
               style={styles.langSelector}
               onPress={() => setLangMenuOpen(!langMenuOpen)}
             >
-              <Text style={styles.langText}>{language} ▾</Text>
+              <PaperText variant="labelMedium" style={styles.langText}>{language} ▾</PaperText>
             </TouchableOpacity>
             {langMenuOpen && (
               <View style={styles.langDropdown}>
@@ -461,7 +492,7 @@ function MainApp({ isConvex }) {
                       setLangMenuOpen(false);
                     }}
                   >
-                    <Text style={styles.dropdownItemText}>{lang}</Text>
+                    <PaperText variant="labelMedium" style={styles.dropdownItemText}>{lang}</PaperText>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -505,16 +536,16 @@ function MainApp({ isConvex }) {
           </Animated.View>
 
           {/* Voice State Badge */}
-          <View style={[styles.stateBadge, { backgroundColor: getOrbColor() }]}>
-            <Text style={styles.stateBadgeText}>{voiceState.toUpperCase()}</Text>
-          </View>
+          <PaperChip style={[styles.stateBadge, { backgroundColor: getOrbColor() }]} textStyle={styles.stateBadgeText}>
+            {voiceState.toUpperCase()}
+          </PaperChip>
         </View>
 
         {/* --- CAPTIONS & DIALOGUE --- */}
         <View style={styles.captionContainer}>
-          <Text style={styles.captionText}>"{caption}"</Text>
+          <PaperText variant="headlineSmall" style={styles.captionText}>"{caption}"</PaperText>
           {transcript !== "" && (
-            <Text style={styles.transcriptText}>You said: {transcript}</Text>
+            <PaperText variant="bodyMedium" style={styles.transcriptText}>You said: {transcript}</PaperText>
           )}
         </View>
 
@@ -524,121 +555,126 @@ function MainApp({ isConvex }) {
         )}
 
         {/* --- DYNAMIC CART DISPLAY --- */}
-        <View style={styles.cartCard}>
-          <View style={styles.cartHeader}>
-            <View style={styles.cartHeaderTitleGroup}>
-              <ShoppingCart size={18} color={COLORS.primary} />
-              <Text style={styles.cartTitle}>Active Cart</Text>
-            </View>
-            {restaurant && (
-              <Text style={styles.restaurantBadge}>{restaurant}</Text>
-            )}
-          </View>
+        <PaperCard style={styles.cartCard} mode="outlined">
+          <PaperCard.Title 
+            title="Active Cart" 
+            titleStyle={styles.cartCardTitle}
+            left={(props) => <ShoppingCart {...props} size={18} color={COLORS.primary} />}
+            right={() => restaurant ? (
+              <PaperChip style={styles.restaurantChip} textStyle={styles.restaurantChipText}>
+                {restaurant}
+              </PaperChip>
+            ) : null}
+          />
+          
+          <PaperCard.Content>
+            {cart.length === 0 ? (
+              <View style={styles.emptyCartContainer}>
+                <PaperText variant="bodyLarge" style={styles.emptyCartText}>Your cart is currently empty.</PaperText>
+                <PaperText variant="bodySmall" style={styles.emptyCartSubtext}>Items added by the voice assistant will appear here in real time.</PaperText>
+              </View>
+            ) : (
+              <View>
+                {cart.map((item, idx) => (
+                  <View key={`${item.menuItemId}-${item.size}-${idx}`} style={styles.cartItemRow}>
+                    <View style={styles.itemMeta}>
+                      <PaperText variant="bodyMedium" style={styles.itemName}>{item.name}</PaperText>
+                      <PaperText variant="bodySmall" style={styles.itemDetails}>Size: {item.size}</PaperText>
+                    </View>
+                    <View style={styles.qtyPriceGroup}>
+                      <PaperText variant="titleMedium" style={styles.itemQty}>x{item.qty}</PaperText>
+                      <PaperText variant="bodyMedium" style={styles.itemPrice}>Rs. {(item.price * item.qty).toLocaleString()}</PaperText>
+                      <PaperIconButton 
+                        icon={() => <Trash2 size={16} color={COLORS.error} />}
+                        size={20}
+                        onPress={() => handleRemoveFromCart(item.menuItemId, item.size)}
+                        style={styles.deleteButton}
+                      />
+                    </View>
+                  </View>
+                ))}
 
-          {cart.length === 0 ? (
-            <View style={styles.emptyCartContainer}>
-              <Text style={styles.emptyCartText}>Your cart is currently empty.</Text>
-              <Text style={styles.emptyCartSubtext}>Items added by the voice assistant will appear here in real time.</Text>
-            </View>
-          ) : (
-            <View>
-              {cart.map((item, idx) => (
-                <View key={`${item.menuItemId}-${item.size}-${idx}`} style={styles.cartItemRow}>
-                  <View style={styles.itemMeta}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemDetails}>Size: {item.size}</Text>
-                  </View>
-                  <View style={styles.qtyPriceGroup}>
-                    <Text style={styles.itemQty}>x{item.qty}</Text>
-                    <Text style={styles.itemPrice}>Rs. {(item.price * item.qty).toLocaleString()}</Text>
-                    <TouchableOpacity 
-                      onPress={() => handleRemoveFromCart(item.menuItemId, item.size)}
-                      style={styles.deleteButton}
-                    >
-                      <Trash2 size={16} color={COLORS.error} />
-                    </TouchableOpacity>
-                  </View>
+                <PaperDivider style={styles.divider} />
+                
+                <View style={styles.priceRow}>
+                  <PaperText variant="bodyMedium" style={styles.priceLabel}>Subtotal</PaperText>
+                  <PaperText variant="bodyMedium" style={styles.priceValue}>Rs. {subtotal.toLocaleString()}</PaperText>
                 </View>
-              ))}
-
-              {/* Pricing breakdown */}
-              <View style={styles.divider} />
-              
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Subtotal</Text>
-                <Text style={styles.priceValue}>Rs. {subtotal.toLocaleString()}</Text>
+                
+                <View style={styles.priceRow}>
+                  <PaperText variant="bodyMedium" style={styles.priceLabel}>Delivery Fee</PaperText>
+                  <PaperText variant="bodyMedium" style={styles.priceValue}>Rs. {deliveryFee.toLocaleString()}</PaperText>
+                </View>
+                
+                <View style={[styles.priceRow, { marginTop: 8 }]}>
+                  <PaperText variant="titleMedium" style={styles.totalLabel}>Total Amount</PaperText>
+                  <PaperText variant="titleLarge" style={styles.totalValue}>Rs. {total.toLocaleString()}</PaperText>
+                </View>
               </View>
-              
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Delivery Fee</Text>
-                <Text style={styles.priceValue}>Rs. {deliveryFee.toLocaleString()}</Text>
-              </View>
-              
-              <View style={[styles.priceRow, { marginTop: 8 }]}>
-                <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={styles.totalValue}>Rs. {total.toLocaleString()}</Text>
-              </View>
-            </View>
-          )}
-        </View>
+            )}
+          </PaperCard.Content>
+        </PaperCard>
 
       </ScrollView>
 
       {/* --- DEV TESTING SIMULATOR DRAWER --- */}
-      <View style={styles.devDrawer}>
+      <PaperCard style={styles.devDrawer} mode="elevated" elevation={2}>
         <View style={styles.devHeader}>
-          <Play size={14} color={COLORS.accent} />
-          <Text style={styles.devTitle}>ElevenLabs Client Tool Simulator</Text>
+          <Play size={12} color={COLORS.accent} />
+          <PaperText variant="labelSmall" style={styles.devTitle}>ElevenLabs Client Tool Simulator</PaperText>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.devActions}>
-          <TouchableOpacity style={styles.devBtn} onPress={runScenarioOrder}>
-            <Text style={styles.devBtnText}>1. Order Chicken Biryani</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.devBtn} onPress={runScenarioAddLarge}>
-            <Text style={styles.devBtnText}>2. Select Large (addToCart)</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.devBtn} onPress={runScenarioAddDrink}>
-            <Text style={styles.devBtnText}>3. Add Coke (addToCart)</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.devBtn} onPress={runScenarioConfirm}>
-            <Text style={styles.devBtnText}>4. Confirm (create_order)</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.devBtn, { backgroundColor: '#374151' }]} 
+          <PaperButton mode="contained" onPress={runScenarioOrder} style={styles.devBtn} labelStyle={styles.devBtnText}>
+            1. Order Biryani
+          </PaperButton>
+          <PaperButton mode="contained" onPress={runScenarioAddLarge} style={styles.devBtn} labelStyle={styles.devBtnText}>
+            2. Large Size
+          </PaperButton>
+          <PaperButton mode="contained" onPress={runScenarioAddDrink} style={styles.devBtn} labelStyle={styles.devBtnText}>
+            3. Add Coke
+          </PaperButton>
+          <PaperButton mode="contained" onPress={runScenarioConfirm} style={[styles.devBtn, { backgroundColor: COLORS.success }]} labelStyle={styles.devBtnText}>
+            4. Confirm
+          </PaperButton>
+          <PaperButton 
+            mode="outlined" 
             onPress={() => {
               setVoiceState('idle');
               setTranscript('');
               setCaption('Assistant reset.');
               setActiveOrderId(null);
             }}
+            style={styles.devBtnReset} 
+            labelStyle={styles.devBtnResetText}
           >
-            <RotateCcw size={14} color="#FFF" />
-            <Text style={[styles.devBtnText, { marginLeft: 4 }]}>Reset Agent</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.devBtn, { backgroundColor: '#4B5563' }]} 
+            Reset Agent
+          </PaperButton>
+          <PaperButton 
+            mode="outlined" 
             onPress={clearCart}
+            style={styles.devBtnReset} 
+            labelStyle={styles.devBtnResetText}
           >
-            <Trash2 size={14} color="#FFF" />
-            <Text style={[styles.devBtnText, { marginLeft: 4 }]}>Clear Cart</Text>
-          </TouchableOpacity>
+            Clear Cart
+          </PaperButton>
         </ScrollView>
-      </View>
+      </PaperCard>
     </SafeAreaView>
   );
 }
 
 // --- Convex Real-time Order Tracking Subscription Component ---
 function ConvexOrderTracker({ orderId }) {
-  // Real-time subscription hook. Convex will push updates to this component instantly!
   const order = useQuery(api.orders.getOrderStatus, { orderId });
 
   if (!order) {
     return (
-      <View style={styles.trackerCard}>
-        <ActivityIndicator color={COLORS.primary} size="small" />
-        <Text style={styles.trackerStatusText}>Subscribing to live tracking stream...</Text>
-      </View>
+      <PaperCard style={styles.trackerCard} mode="outlined">
+        <PaperCard.Content style={styles.trackerLoading}>
+          <ActivityIndicator color={COLORS.primary} size="small" />
+          <PaperText variant="bodyMedium" style={styles.trackerStatusText}>Subscribing to live order updates...</PaperText>
+        </PaperCard.Content>
+      </PaperCard>
     );
   }
 
@@ -650,32 +686,54 @@ function ConvexOrderTracker({ orderId }) {
     }
   };
 
+  const getProgress = () => {
+    switch (order.status) {
+      case 'Placed': return 0.25;
+      case 'Preparing': return 0.50;
+      case 'OnTheWay': return 0.75;
+      case 'Delivered': return 1.0;
+      default: return 0.1;
+    }
+  };
+
   return (
-    <View style={styles.trackerCard}>
-      <Text style={styles.trackerTitle}>Live Tracking (Order #{order.orderNumber})</Text>
-      
-      <View style={styles.trackerProgressContainer}>
-        <View style={[styles.progressBar, { width: order.status === 'Placed' ? '25%' : order.status === 'Preparing' ? '50%' : order.status === 'OnTheWay' ? '75%' : '100%', backgroundColor: getStatusColor() }]} />
-      </View>
+    <PaperCard style={styles.trackerCard} mode="outlined">
+      <PaperCard.Content>
+        <PaperText variant="titleMedium" style={styles.trackerTitle}>Live Tracking (Order #{order.orderNumber})</PaperText>
+        
+        <PaperProgressBar 
+          progress={getProgress()} 
+          color={getStatusColor()} 
+          style={styles.progressBar}
+        />
 
-      <View style={styles.trackerDetailsRow}>
-        <View>
-          <Text style={styles.trackerLabel}>Status</Text>
-          <Text style={[styles.trackerValue, { color: getStatusColor() }]}>{order.status}</Text>
+        <View style={styles.trackerDetailsRow}>
+          <View>
+            <PaperText variant="bodySmall" style={styles.trackerLabel}>Status</PaperText>
+            <PaperText variant="bodyLarge" style={[styles.trackerValue, { color: getStatusColor() }]}>
+              {order.status}
+            </PaperText>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <PaperText variant="bodySmall" style={styles.trackerLabel}>Estimated Delivery</PaperText>
+            <PaperText variant="bodyLarge" style={styles.trackerValue}>
+              {order.rider?.etaMins > 0 ? `${order.rider.etaMins} mins` : "Delivered ✓"}
+            </PaperText>
+          </View>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={styles.trackerLabel}>Estimated Delivery</Text>
-          <Text style={styles.trackerValue}>{order.rider?.etaMins > 0 ? `${order.rider.etaMins} mins` : "Delivered ✓"}</Text>
-        </View>
-      </View>
 
-      {order.rider && (
-        <View style={styles.riderBox}>
-          <Text style={styles.riderText}>Rider Coordinates: {order.rider.lat.toFixed(4)}, {order.rider.lng.toFixed(4)}</Text>
-          <Text style={styles.riderSubtext}>Simulating live GPS movement onto delivery address...</Text>
-        </View>
-      )}
-    </View>
+        {order.rider && (
+          <View style={styles.riderBox}>
+            <PaperText variant="bodySmall" style={styles.riderText}>
+              Rider GPS: {order.rider.lat.toFixed(4)}, {order.rider.lng.toFixed(4)}
+            </PaperText>
+            <PaperText variant="bodySmall" style={styles.riderSubtext}>
+              Simulating live rider movement to your delivery address...
+            </PaperText>
+          </View>
+        )}
+      </PaperCard.Content>
+    </PaperCard>
   );
 }
 
@@ -691,60 +749,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1F2937'
+    borderBottomColor: '#24262A'
   },
   headerTitle: {
-    fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.text
   },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4
+    marginTop: 6
   },
-  dbBadge: {
-    flexDirection: 'row',
+  dbChip: {
+    height: 22,
     alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginRight: 6
+    justifyContent: 'center',
+    marginRight: 6,
+    borderRadius: 6
   },
-  dbBadgeText: {
+  dbChipText: {
     fontSize: 9,
-    fontWeight: 'bold',
-    marginLeft: 3
+    fontWeight: '800',
+    lineHeight: 12
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center'
   },
   locationText: {
-    fontSize: 10,
     color: COLORS.muted,
-    marginLeft: 2
+    marginLeft: 3
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center'
   },
   seedBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 90, 31, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    height: 32,
+    justifyContent: 'center',
     marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 90, 31, 0.3)'
+    borderRadius: 8
   },
-  seedBtnText: {
-    color: COLORS.text,
+  seedBtnLabel: {
     fontSize: 11,
-    fontWeight: '700',
-    marginLeft: 4
+    fontWeight: 'bold',
+    marginHorizontal: 0,
+    marginVertical: 0
   },
   langSelector: {
     backgroundColor: COLORS.surface,
@@ -752,12 +802,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#374151'
+    borderColor: '#374151',
+    height: 32,
+    justifyContent: 'center'
   },
   langText: {
     color: COLORS.text,
-    fontWeight: '600',
-    fontSize: 12
+    fontWeight: '600'
   },
   langDropdown: {
     position: 'absolute',
@@ -776,30 +827,29 @@ const styles = StyleSheet.create({
   },
   dropdownItemText: {
     color: COLORS.text,
-    fontSize: 12,
     fontWeight: '600'
   },
   scrollContent: {
-    paddingBottom: 150
+    paddingBottom: 160
   },
   orbContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 220,
+    height: 200,
     position: 'relative'
   },
   orbOuterRing: {
     position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     borderWidth: 3,
     borderStyle: 'dashed'
   },
   orbCore: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -810,15 +860,17 @@ const styles = StyleSheet.create({
   },
   stateBadge: {
     position: 'absolute',
-    bottom: 24,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12
+    bottom: 15,
+    borderRadius: 6,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   stateBadgeText: {
     color: COLORS.text,
-    fontSize: 9,
-    fontWeight: '800'
+    fontSize: 8,
+    fontWeight: '900',
+    lineHeight: 12
   },
   captionContainer: {
     paddingHorizontal: 24,
@@ -826,14 +878,12 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   captionText: {
-    fontSize: 17,
     color: COLORS.text,
     textAlign: 'center',
-    lineHeight: 24,
-    fontWeight: '500'
+    lineHeight: 30,
+    fontWeight: '600'
   },
   transcriptText: {
-    fontSize: 13,
     color: COLORS.muted,
     marginTop: 6,
     fontStyle: 'italic',
@@ -841,49 +891,38 @@ const styles = StyleSheet.create({
   },
   cartCard: {
     backgroundColor: COLORS.surface,
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#2D3748'
+    marginHorizontal: 16,
+    borderRadius: 8,
+    borderColor: '#24262A'
   },
-  cartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14
-  },
-  cartHeaderTitleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  cartTitle: {
+  cartCardTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: COLORS.text,
-    marginLeft: 8
+    color: COLORS.text
   },
-  restaurantBadge: {
-    fontSize: 11,
-    color: COLORS.accent,
-    backgroundColor: 'rgba(255, 183, 3, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+  restaurantChip: {
+    backgroundColor: 'rgba(255, 183, 3, 0.12)',
     borderRadius: 6,
-    fontWeight: '600'
+    height: 24,
+    marginRight: 12,
+    justifyContent: 'center'
+  },
+  restaurantChipText: {
+    fontSize: 10,
+    color: COLORS.accent,
+    fontWeight: '700',
+    lineHeight: 12
   },
   emptyCartContainer: {
     alignItems: 'center',
-    paddingVertical: 20
+    paddingVertical: 16
   },
   emptyCartText: {
     color: COLORS.muted,
-    fontSize: 14,
     fontWeight: '600'
   },
   emptyCartSubtext: {
-    color: '#6B7280',
-    fontSize: 11,
+    color: '#64748B',
     textAlign: 'center',
     marginTop: 4,
     paddingHorizontal: 20
@@ -894,18 +933,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D3748'
+    borderBottomColor: '#24262A'
   },
   itemMeta: {
     flex: 1
   },
   itemName: {
-    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text
   },
   itemDetails: {
-    fontSize: 11,
     color: COLORS.muted,
     marginTop: 2
   },
@@ -914,26 +951,23 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   itemQty: {
-    fontSize: 13,
     color: COLORS.accent,
-    marginRight: 10,
+    marginRight: 12,
     fontWeight: '700'
   },
   itemPrice: {
-    fontSize: 14,
     color: COLORS.text,
     fontWeight: '600',
     width: 70,
     textAlign: 'right'
   },
   deleteButton: {
-    padding: 6,
-    marginLeft: 6
+    margin: 0,
+    marginLeft: 4
   },
   divider: {
-    height: 1,
-    backgroundColor: '#2D3748',
-    marginVertical: 12
+    backgroundColor: '#24262A',
+    marginVertical: 10
   },
   priceRow: {
     flexDirection: 'row',
@@ -941,49 +975,42 @@ const styles = StyleSheet.create({
     marginVertical: 3
   },
   priceLabel: {
-    color: COLORS.muted,
-    fontSize: 13
+    color: COLORS.muted
   },
   priceValue: {
     color: COLORS.text,
-    fontSize: 13,
     fontWeight: '500'
   },
   totalLabel: {
     color: COLORS.text,
-    fontSize: 15,
     fontWeight: 'bold'
   },
   totalValue: {
     color: COLORS.primary,
-    fontSize: 17,
     fontWeight: 'bold'
   },
   trackerCard: {
-    backgroundColor: '#1E293B',
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: '#161E2E',
+    marginHorizontal: 16,
+    borderRadius: 8,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: '#1F2937'
+  },
+  trackerLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12
   },
   trackerTitle: {
     color: COLORS.text,
-    fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 10
   },
-  trackerProgressContainer: {
-    height: 6,
-    backgroundColor: '#0F172A',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 10
-  },
   progressBar: {
-    height: '100%',
-    borderRadius: 3
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 12
   },
   trackerDetailsRow: {
     flexDirection: 'row',
@@ -991,34 +1018,28 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   trackerLabel: {
-    color: '#64748B',
-    fontSize: 11
+    color: '#9CA3AF'
   },
   trackerValue: {
-    color: COLORS.text,
-    fontSize: 13,
     fontWeight: 'bold',
     marginTop: 2
   },
   trackerStatusText: {
     color: COLORS.muted,
-    fontSize: 12,
     marginLeft: 10
   },
   riderBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0B0F19',
     padding: 10,
-    borderRadius: 8
+    borderRadius: 6
   },
   riderText: {
     color: COLORS.accent,
-    fontSize: 11,
-    fontFamily: 'monospace'
+    fontFamily: 'System'
   },
   riderSubtext: {
-    color: '#64748B',
-    fontSize: 9,
-    marginTop: 4
+    color: '#6B7280',
+    marginTop: 2
   },
   devDrawer: {
     position: 'absolute',
@@ -1026,18 +1047,19 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#1E293B',
-    borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 16
+    paddingHorizontal: 12,
+    borderRadius: 0
   },
   devHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8
+    marginBottom: 8,
+    paddingLeft: 4
   },
   devTitle: {
-    fontSize: 11,
     fontWeight: 'bold',
     color: '#94A3B8',
     marginLeft: 6
@@ -1047,17 +1069,27 @@ const styles = StyleSheet.create({
     paddingRight: 16
   },
   devBtn: {
+    marginRight: 6,
+    borderRadius: 6,
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginRight: 8,
-    flexDirection: 'row',
-    alignItems: 'center'
+    height: 34,
+    justifyContent: 'center'
   },
   devBtnText: {
-    color: '#FFF',
-    fontSize: 11,
-    fontWeight: '700'
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFF'
+  },
+  devBtnReset: {
+    marginRight: 6,
+    borderRadius: 6,
+    height: 34,
+    justifyContent: 'center',
+    borderColor: '#475569'
+  },
+  devBtnResetText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#94A3B8'
   }
 });
