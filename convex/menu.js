@@ -1,18 +1,85 @@
-const express = require('express');
-const router = express.Router();
-const { Restaurant, MenuItem, User } = require('../models');
-const { verifyAgentSecret } = require('./agent');
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
 
-// Seeding endpoint for testing/development
-router.post('/seed', async (req, res) => {
-  try {
-    // Clean database first
-    await User.deleteMany({});
-    await Restaurant.deleteMany({});
-    await MenuItem.deleteMany({});
+// GET /api/menu/:restaurantId
+export const getMenu = query({
+  args: { restaurantId: v.id("restaurants") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("menuItems")
+      .withIndex("by_restaurant", (q) => q.eq("restaurantId", args.restaurantId))
+      .filter((q) => q.eq(q.field("available"), true))
+      .collect();
+  }
+});
 
-    // 1. Create a dummy user
-    const user = await User.create({
+// GET /api/foods/search?q=
+export const searchFood = query({
+  args: { q: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const qStr = args.q ? args.q.toLowerCase() : "";
+    const items = await ctx.db
+      .query("menuItems")
+      .filter((q) => q.eq(q.field("available"), true))
+      .collect();
+
+    if (!qStr) {
+      return [];
+    }
+
+    const matched = [];
+    for (const item of items) {
+      const nameMatch = item.name.toLowerCase().includes(qStr);
+      const taMatch = item.nameLocalized.ta?.toLowerCase().includes(qStr);
+      const siMatch = item.nameLocalized.si?.toLowerCase().includes(qStr);
+      const tagMatch = item.tags.some(tag => tag.toLowerCase().includes(qStr));
+
+      if (nameMatch || taMatch || siMatch || tagMatch) {
+        const restaurant = await ctx.db.get(item.restaurantId);
+        matched.push({
+          menuItemId: item._id,
+          name: item.name,
+          nameLocalized: item.nameLocalized,
+          basePrice: item.basePrice,
+          sizes: item.sizes,
+          options: item.options,
+          restaurant: {
+            id: restaurant._id,
+            name: restaurant.name,
+            rating: restaurant.rating,
+            isOpen: restaurant.isOpen
+          }
+        });
+      }
+    }
+    return matched;
+  }
+});
+
+// Seeding mutation to clear and populate database with default Sri Lankan restaurants/menus
+export const seed = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // 1. Clear database
+    const users = await ctx.db.query("users").collect();
+    for (const u of users) {
+      await ctx.db.delete(u._id);
+    }
+    const restaurants = await ctx.db.query("restaurants").collect();
+    for (const r of restaurants) {
+      await ctx.db.delete(r._id);
+    }
+    const items = await ctx.db.query("menuItems").collect();
+    for (const i of items) {
+      await ctx.db.delete(i._id);
+    }
+    const orders = await ctx.db.query("orders").collect();
+    for (const o of orders) {
+      await ctx.db.delete(o._id);
+    }
+
+    // 2. Add Default User
+    const userId = await ctx.db.insert("users", {
       name: "Raviraj Sarangan",
       phone: "+94771234567",
       addresses: [
@@ -23,8 +90,8 @@ router.post('/seed', async (req, res) => {
       preferences: { spicy: true, veg: false }
     });
 
-    // 2. Create Restaurants
-    const r1 = await Restaurant.create({
+    // 3. Add Restaurants
+    const r1Id = await ctx.db.insert("restaurants", {
       name: "ABC Biryani House",
       location: { lat: 6.9150, lng: 79.8550 },
       rating: 4.5,
@@ -32,7 +99,7 @@ router.post('/seed', async (req, res) => {
       cuisines: ["Biryani", "Indian", "Sri Lankan"]
     });
 
-    const r2 = await Restaurant.create({
+    const r2Id = await ctx.db.insert("restaurants", {
       name: "Spice Garden",
       location: { lat: 6.9200, lng: 79.8600 },
       rating: 4.2,
@@ -40,11 +107,10 @@ router.post('/seed', async (req, res) => {
       cuisines: ["Sri Lankan", "Rice & Curry", "Kottu"]
     });
 
-    // 3. Create Menu Items
+    // 4. Add Menu Items
     const menuItems = [
-      // ABC Biryani House Menu Items
       {
-        restaurantId: r1._id,
+        restaurantId: r1Id,
         name: "Chicken Biryani",
         nameLocalized: {
           ta: "சிக்கன் பிரியாணி",
@@ -64,7 +130,7 @@ router.post('/seed', async (req, res) => {
         available: true
       },
       {
-        restaurantId: r1._id,
+        restaurantId: r1Id,
         name: "Mutton Biryani",
         nameLocalized: {
           ta: "மட்டன் பிரியாணி",
@@ -84,7 +150,7 @@ router.post('/seed', async (req, res) => {
         available: true
       },
       {
-        restaurantId: r1._id,
+        restaurantId: r1Id,
         name: "Coke",
         nameLocalized: {
           ta: "கோக்",
@@ -100,14 +166,12 @@ router.post('/seed', async (req, res) => {
         protein: 0,
         available: true
       },
-
-      // Spice Garden Menu Items
       {
-        restaurantId: r2._id,
+        restaurantId: r2Id,
         name: "Chicken Kottu",
         nameLocalized: {
           ta: "சிக்கன் கொத்து",
-          si: "චිකන් කොත්තු"
+          si: "චිකன் கொத்து"
         },
         basePrice: 850,
         sizes: [
@@ -123,7 +187,7 @@ router.post('/seed', async (req, res) => {
         available: true
       },
       {
-        restaurantId: r2._id,
+        restaurantId: r2Id,
         name: "Egg Kottu",
         nameLocalized: {
           ta: "முட்டை கொத்து",
@@ -142,75 +206,17 @@ router.post('/seed', async (req, res) => {
       }
     ];
 
-    await MenuItem.insertMany(menuItems);
-
-    res.json({
-      success: true,
-      message: "Database seeded successfully",
-      user: { id: user._id, name: user.name },
-      restaurants: [
-        { id: r1._id, name: r1.name },
-        { id: r2._id, name: r2.name }
-      ]
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// GET /api/menu/:restaurantId
-// Returns menu items for a restaurant
-router.get('/menu/:restaurantId', verifyAgentSecret, async (req, res) => {
-  try {
-    const { restaurantId } = req.params;
-    const items = await MenuItem.find({ restaurantId, available: true });
-    res.json({ success: true, items });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// GET /api/foods/search?q=
-// Finds dishes and their restaurants
-router.get('/foods/search', verifyAgentSecret, async (req, res) => {
-  try {
-    const query = req.query.q || '';
-    if (!query) {
-      return res.json({ success: true, results: [] });
+    for (const item of menuItems) {
+      await ctx.db.insert("menuItems", item);
     }
 
-    // Search by name (case-insensitive regex) or localized names, or tags
-    const searchRegex = new RegExp(query, 'i');
-    const items = await MenuItem.find({
-      available: true,
-      $or: [
-        { name: searchRegex },
-        { 'nameLocalized.ta': searchRegex },
-        { 'nameLocalized.si': searchRegex },
-        { tags: { $in: [searchRegex] } }
+    return {
+      success: true,
+      userId,
+      restaurants: [
+        { id: r1Id, name: "ABC Biryani House" },
+        { id: r2Id, name: "Spice Garden" }
       ]
-    }).populate('restaurantId', 'name rating location isOpen');
-
-    // Format results to make it easier for ElevenLabs LLM to parse
-    const formattedResults = items.map(item => ({
-      menuItemId: item._id,
-      name: item.name,
-      nameLocalized: item.nameLocalized,
-      basePrice: item.basePrice,
-      sizes: item.sizes,
-      options: item.options,
-      restaurant: {
-        id: item.restaurantId._id,
-        name: item.restaurantId.name,
-        rating: item.restaurantId.rating,
-        isOpen: item.restaurantId.isOpen
-      }
-    }));
-
-    res.json({ success: true, results: formattedResults });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    };
   }
 });
-
-module.exports = router;
