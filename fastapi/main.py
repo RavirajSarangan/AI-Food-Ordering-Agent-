@@ -10,7 +10,8 @@ app = FastAPI(
     version="1.0.0"
 )
 
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:5001")
+BACKEND_URL = os.getenv("BACKEND_URL", "https://dutiful-tapir-821.convex.cloud")
+WEBHOOK_SECRET = os.getenv("ELEVENLABS_WEBHOOK_SECRET", "dummy_webhook_secret")
 
 # --- Pydantic Data Models ---
 class RecommendRequest(BaseModel):
@@ -47,10 +48,13 @@ async def recommend_foods(req: RecommendRequest):
         # Search all foods in backend using search query if mood or dietary matches
         search_query = req.mood or req.dietary or ""
         
+        headers = {"x-elevenlabs-secret": WEBHOOK_SECRET}
+        
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{BACKEND_URL}/api/foods/search", 
                 params={"q": search_query},
+                headers=headers,
                 timeout=5.0
             )
             

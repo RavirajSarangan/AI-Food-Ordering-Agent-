@@ -35,7 +35,7 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     try {
       const body = await request.json();
-      const res = await ctx.action(api.agent.getSessionUrl, {
+      const res = await ctx.runAction(api.agent.getSessionUrl, {
         userId: body.userId,
         userName: body.userName
       });
