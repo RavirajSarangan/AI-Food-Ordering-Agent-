@@ -16,7 +16,9 @@ import {
   ChevronRight,
   ChevronDown,
   Sun,
-  Moon
+  Moon,
+  Compass,
+  Flame
 } from 'lucide-react';
 
 // --- Convex Imports ---
@@ -347,16 +349,19 @@ function MainApp({ isConvex }) {
       setCaption("Updating cart...");
 
       let itemConfig = {
-        menuItemId: "jd72n0aygtjjck6vc9t2rj4hbh882tpk", // seeded ID fallback
+        menuItemId: "dummy_biryani_id", // safe demo fallback
         name: "Chicken Biryani",
         size: "large",
         price: 1400
       };
 
-      if (isConvex && restaurantId) {
+      if (isConvex) {
         try {
           const searchResult = await convex.query(api.menu.searchFood, { q: "biryani" });
-          const match = searchResult.find(item => item.restaurant.id === restaurantId);
+          const match = restaurantId 
+            ? (searchResult.find(item => item.restaurant.id === restaurantId) || searchResult[0])
+            : searchResult[0];
+
           if (match) {
             const largeSize = match.sizes.find(s => s.label === "large");
             itemConfig = {
@@ -365,6 +370,10 @@ function MainApp({ isConvex }) {
               size: "large",
               price: largeSize ? largeSize.price : match.basePrice
             };
+            if (!restaurantId) {
+              setRestaurantId(match.restaurant.id);
+              setRestaurantName(match.restaurant.name);
+            }
           }
         } catch (e) {
           console.warn(e);
@@ -387,16 +396,19 @@ function MainApp({ isConvex }) {
       setCaption("Adding beverage...");
 
       let drinkConfig = {
-        menuItemId: "jd72n0aygtjjck6vc9t2rj4hbh882tpk", // seeded ID fallback
+        menuItemId: "dummy_coke_id", // safe demo fallback
         name: "Coke",
         size: "regular",
         price: 200
       };
 
-      if (isConvex && restaurantId) {
+      if (isConvex) {
         try {
           const searchResult = await convex.query(api.menu.searchFood, { q: "coke" });
-          const match = searchResult.find(item => item.restaurant.id === restaurantId);
+          const match = restaurantId 
+            ? (searchResult.find(item => item.restaurant.id === restaurantId) || searchResult[0])
+            : searchResult[0];
+
           if (match) {
             drinkConfig = {
               menuItemId: match.menuItemId,
@@ -404,6 +416,10 @@ function MainApp({ isConvex }) {
               size: "regular",
               price: match.basePrice
             };
+            if (!restaurantId) {
+              setRestaurantId(match.restaurant.id);
+              setRestaurantName(match.restaurant.name);
+            }
           }
         } catch (e) {
           console.warn(e);
@@ -412,7 +428,7 @@ function MainApp({ isConvex }) {
 
       handleAddToCart(drinkConfig);
       setVoiceState('speaking');
-      const sub = cart.reduce((sum, item) => sum + (item.price * item.qty), 0) + 1400 + 200;
+      const sub = cart.reduce((sum, item) => sum + (item.price * item.qty), 0) + drinkConfig.price;
       setCaption(`Your total is Rs. ${(sub + 150).toLocaleString()} (including Rs. 150 delivery). Shall I place the order?`);
     }, 2000);
   };
@@ -636,10 +652,16 @@ function MainApp({ isConvex }) {
                 )}
               </div>
 
+              {/* Audio-Reactive Waveform Visualizer */}
+              <WaveformVisualizer conversation={conversation} voiceState={voiceState} />
+
               {/* Real-time Rider Tracking */}
               {isConvex && activeOrderId && (
                 <ConvexOrderTracker orderId={activeOrderId} />
               )}
+
+              {/* Dynamic Contextual Voice Guide */}
+              <ContextualVoiceGuide cart={cart} />
 
               {/* Shopping Cart Sync */}
               <div className="cart-card">
@@ -732,9 +754,72 @@ function MainApp({ isConvex }) {
   );
 }
 
+// Sound synthesis chime helper
+const playStatusSound = (status) => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    const playTone = (freq, duration, type = 'sine', startTime = 0) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + startTime);
+      osc.stop(ctx.currentTime + startTime + duration);
+    };
+
+    if (status === 'Placed') {
+      playTone(261.63, 0.25, 'sine', 0);    // C4
+      playTone(329.63, 0.25, 'sine', 0.08);  // E4
+      playTone(392.00, 0.25, 'sine', 0.16);  // G4
+      playTone(523.25, 0.45, 'sine', 0.24);  // C5
+    } else if (status === 'Preparing') {
+      for (let i = 0; i < 5; i++) {
+        playTone(300 + Math.random() * 200, 0.06, 'triangle', i * 0.1);
+      }
+    } else if (status === 'OnTheWay') {
+      playTone(440, 0.12, 'sine', 0);
+      playTone(440, 0.12, 'sine', 0.2);
+    } else if (status === 'Delivered') {
+      playTone(523.25, 0.15, 'sine', 0);
+      playTone(659.25, 0.15, 'sine', 0.08);
+      playTone(783.99, 0.15, 'sine', 0.16);
+      playTone(1046.50, 0.5, 'sine', 0.24);
+    }
+  } catch (e) {
+    console.warn("Audio playback blocked or failed:", e);
+  }
+};
+
+const getDistanceKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
 // --- Convex Real-time Order Tracking Subscription Component ---
 function ConvexOrderTracker({ orderId }) {
   const order = useQuery(api.orders.getOrderStatus, { orderId });
+  const [lastStatus, setLastStatus] = React.useState(null);
+
+  React.useEffect(() => {
+    if (order && order.status && order.status !== lastStatus) {
+      setLastStatus(order.status);
+      playStatusSound(order.status);
+    }
+  }, [order?.status, lastStatus]);
 
   if (!order) {
     return (
@@ -765,6 +850,37 @@ function ConvexOrderTracker({ orderId }) {
     }
   };
 
+  const getRiderPosition = () => {
+    if (!order.rider) return { x: 40, y: 70 };
+    const rLat = order.rider.lat;
+    const rLng = order.rider.lng;
+    
+    // Coordinates matching orders.js simulation
+    const startLat = 6.9150; // Kitchen
+    const startLng = 79.8550;
+    const endLat = 6.9123;   // Home
+    const endLng = 79.8521;
+    
+    const totalLat = endLat - startLat;
+    const totalLng = endLng - startLng;
+    
+    // Calculate percentage progress between start and end
+    const pct = totalLat !== 0 ? (rLat - startLat) / totalLat : 0;
+    
+    // Interpolate positions along the Bezier curve of the street
+    // P0 = (40, 70)
+    // P1 = (120, 20)
+    // P2 = (200, 120)
+    // P3 = (320, 60)
+    const t = Math.max(0, Math.min(1, pct));
+    const x = Math.pow(1-t, 3)*40 + 3*Math.pow(1-t, 2)*t*120 + 3*(1-t)*Math.pow(t, 2)*200 + Math.pow(t, 3)*320;
+    const y = Math.pow(1-t, 3)*70 + 3*Math.pow(1-t, 2)*t*20 + 3*(1-t)*Math.pow(t, 2)*120 + Math.pow(t, 3)*60;
+    return { x, y };
+  };
+
+  const riderPos = getRiderPosition();
+  const distance = order.rider ? getDistanceKm(order.rider.lat, order.rider.lng, 6.9123, 79.8521) : 0;
+
   return (
     <div className="tracker-card">
       <div className="tracker-title">Live Rider Tracker (Order #{order.orderNumber})</div>
@@ -776,19 +892,111 @@ function ConvexOrderTracker({ orderId }) {
         />
       </div>
 
+      {/* Stepper Timeline */}
+      <div className="tracker-stepper">
+        <div className="stepper-connector">
+          <div 
+            className="stepper-connector-active" 
+            style={{ width: order.status === 'Placed' ? '0%' : order.status === 'Preparing' ? '33%' : order.status === 'OnTheWay' ? '66%' : '100%' }}
+          />
+        </div>
+        {[
+          { key: 'Placed', label: 'Placed', icon: <CheckCircle2 size={12} /> },
+          { key: 'Preparing', label: 'Preparing', icon: <Flame size={12} /> },
+          { key: 'OnTheWay', label: 'On Way', icon: <Compass size={12} /> },
+          { key: 'Delivered', label: 'Delivered', icon: <MapPin size={12} /> }
+        ].map((step, idx) => {
+          const statusOrder = ['Placed', 'Preparing', 'OnTheWay', 'Delivered'];
+          const currentIdx = statusOrder.indexOf(order.status);
+          const stepIdx = statusOrder.indexOf(step.key);
+          const isCompleted = stepIdx < currentIdx;
+          const isActive = stepIdx === currentIdx;
+          
+          return (
+            <div key={step.key} className={`stepper-step ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}>
+              <div className="stepper-bubble">
+                {step.icon}
+              </div>
+              <div className="stepper-label">{step.label}</div>
+            </div>
+          );
+        })}
+      </div>
+
       <div className="tracker-details">
         <div>
           <div className="tracker-label">Status</div>
-          <div className="tracker-value" style={{ color: getStatusColor() }}>{order.status}</div>
+          <div className="tracker-value" style={{ color: getStatusColor() }}>
+            {order.status === 'Placed' && "Order Placed"}
+            {order.status === 'Preparing' && "Preparing Meal"}
+            {order.status === 'OnTheWay' && "Out for Delivery"}
+            {order.status === 'Delivered' && "Delivered ✓"}
+          </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div className="tracker-label">ETA</div>
-          <div className="tracker-value">{order.rider?.etaMins > 0 ? `${order.rider.etaMins} mins` : "Delivered ✓"}</div>
+          <div className="tracker-label">ETA / Distance</div>
+          <div className="tracker-value">
+            {order.status === 'Delivered' ? (
+              "Enjoy your meal!"
+            ) : order.rider ? (
+              `${order.rider.etaMins} mins (${distance.toFixed(2)} km)`
+            ) : (
+              "Calculating..."
+            )}
+          </div>
         </div>
       </div>
 
+      {/* --- Live Interactive SVG Map --- */}
+      <div className="live-delivery-map">
+        <svg viewBox="0 0 360 130" width="100%" height="100%">
+          {/* Background gridlines */}
+          <line x1="0" y1="30" x2="360" y2="30" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+          <line x1="0" y1="65" x2="360" y2="65" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+          <line x1="0" y1="100" x2="360" y2="100" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+          <line x1="90" y1="0" x2="90" y2="130" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+          <line x1="180" y1="0" x2="180" y2="130" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+          <line x1="270" y1="0" x2="270" y2="130" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+
+          {/* Street Road Path */}
+          <path 
+            d="M 40 70 C 120 20, 200 120, 320 60" 
+            className="map-street" 
+          />
+          <path 
+            d="M 40 70 C 120 20, 200 120, 320 60" 
+            className="map-street-active" 
+            strokeDasharray="10, 5"
+          />
+
+          {/* Restaurant Marker */}
+          <g className="map-marker" transform="translate(40, 70)">
+            <circle r="8" fill={COLORS.primary} />
+            <circle r="4" fill="#FFF" />
+            <text y="-14" textAnchor="middle" className="map-label">KITCHEN</text>
+          </g>
+
+          {/* Home Marker */}
+          <g className="map-marker" transform="translate(320, 60)">
+            <circle r="8" fill={COLORS.success} />
+            <polygon points="0,-4 -4,4 4,4" fill="#FFF" />
+            <text y="-14" textAnchor="middle" className="map-label">HOME</text>
+          </g>
+
+          {/* Live Rider Marker */}
+          {order.rider && (
+            <g className="map-marker animate-rider" transform={`translate(${riderPos.x}, ${riderPos.y})`}>
+              <circle r="7" fill={COLORS.accent} />
+              <polygon points="0,-8 5,3 -5,3" fill="#FFF" transform="rotate(45)" />
+              <circle r="2.5" fill="#000" />
+              <text y="18" textAnchor="middle" className="map-label" fill={COLORS.accent} style={{ fontSize: '7px', fontWeight: '800' }}>RIDER</text>
+            </g>
+          )}
+        </svg>
+      </div>
+
       {order.rider && (
-        <div className="rider-gps-box">
+        <div className="rider-gps-box" style={{ marginTop: '10px' }}>
           Rider GPS: {order.rider.lat.toFixed(4)}, {order.rider.lng.toFixed(4)}
           <p style={{ fontSize: '9px', color: 'var(--muted)', marginTop: '2px', fontWeight: 'normal' }}>
             Simulating live movement to Colombo address...
@@ -796,6 +1004,79 @@ function ConvexOrderTracker({ orderId }) {
         </div>
       )}
     </div>
+  );
+}
+
+// --- Audio-Reactive Visualizer Component using Web Audio API Frequency Data ---
+function WaveformVisualizer({ conversation, voiceState }) {
+  const canvasRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationId;
+
+    const draw = () => {
+      animationId = requestAnimationFrame(draw);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      let dataArray = new Uint8Array(0);
+      if (voiceState === 'listening') {
+        dataArray = conversation.getInputByteFrequencyData();
+      } else if (voiceState === 'speaking') {
+        dataArray = conversation.getOutputByteFrequencyData();
+      }
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = voiceState === 'listening' ? '#FF5A1F' : '#818CF8';
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = ctx.strokeStyle;
+
+      if (dataArray.length > 0) {
+        // Draw real frequency spectrum bars
+        const barWidth = (canvas.width / dataArray.length) * 2.5;
+        let x = 0;
+
+        for (let i = 0; i < dataArray.length; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+          ctx.fillStyle = ctx.strokeStyle;
+          ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+          x += barWidth;
+        }
+      } else {
+        // Draw elegant idle sine wave
+        ctx.beginPath();
+        const time = Date.now() * 0.005;
+        for (let x = 0; x < canvas.width; x++) {
+          const y = canvas.height / 2 + Math.sin(x * 0.05 + time) * 4;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0; // reset
+    };
+
+    draw();
+    return () => cancelAnimationFrame(animationId);
+  }, [conversation, voiceState]);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      width="320" 
+      height="45" 
+      className="waveform-canvas" 
+      style={{ 
+        margin: '15px auto', 
+        display: 'block', 
+        borderRadius: '8px',
+        width: '100%',
+        maxWidth: '360px',
+        height: '45px'
+      }} 
+    />
   );
 }
 
@@ -810,5 +1091,51 @@ function ActivityIndicator() {
       borderTopColor: COLORS.primary,
       animation: 'rotateSpin 1s infinite linear'
     }} />
+  );
+}
+
+// --- Dynamic Contextual Voice Guide Component ---
+function ContextualVoiceGuide({ cart }) {
+  const getSuggestions = () => {
+    if (cart.length === 0) {
+      return [
+        "Order a Chicken Biryani from ABC Biryani House",
+        "Add a Chicken Kottu from Spice Garden",
+        "Show me spicy Sri Lankan food recommendations"
+      ];
+    }
+    const hasBiryani = cart.some(item => item.name.toLowerCase().includes("biryani"));
+    const hasKottu = cart.some(item => item.name.toLowerCase().includes("kottu"));
+    const hasDrink = cart.some(item => ["coke", "sprite", "soda", "water", "drink"].some(d => item.name.toLowerCase().includes(d)));
+
+    const list = [];
+    if ((hasBiryani || hasKottu) && !hasDrink) {
+      list.push("Add a cold Coke to my order");
+    }
+    
+    // Check if biryani is regular size
+    const regularBiryani = cart.find(item => item.name.toLowerCase().includes("biryani") && item.size === "regular");
+    if (regularBiryani) {
+      list.push("Change the biryani to a large size");
+    }
+
+    list.push("Yes, please confirm and place my order");
+    list.push("Clear my cart and start over");
+    return list;
+  };
+
+  const suggestions = getSuggestions();
+
+  return (
+    <div className="voice-guide-container">
+      <div className="voice-guide-title">Suggested Voice Commands</div>
+      <div className="voice-guide-suggestions">
+        {suggestions.map((s, idx) => (
+          <div key={idx} className="voice-guide-chip">
+            🎤 "{s}"
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -876,3 +876,206 @@ body.light-theme .theme-toggle-btn:hover {
     border-bottom-right-radius: 0;
   }
 }
+
+/* --- Live SVG Map Styling --- */
+.live-delivery-map {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  height: 140px;
+  margin-top: 15px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.map-street {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 6;
+  fill: none;
+  stroke-linecap: round;
+}
+
+body.light-theme .map-street {
+  stroke: rgba(0, 0, 0, 0.05);
+}
+
+.map-street-active {
+  stroke: var(--primary);
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+
+.map-marker {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.map-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  fill: var(--text);
+  opacity: 0.8;
+  font-family: var(--font-body);
+}
+
+/* --- Waveform Canvas Styling --- */
+.waveform-canvas {
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--surface-border);
+  box-shadow: inset 0 1px 5px rgba(0,0,0,0.2);
+  transition: border-color 0.3s ease;
+}
+
+body.light-theme .waveform-canvas {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* Animations */
+.animate-rider {
+  animation: pulseRider 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes pulseRider {
+  0% { transform: scale(1); filter: drop-shadow(0 2px 4px var(--accent)); }
+  100% { transform: scale(1.1); filter: drop-shadow(0 2px 8px var(--accent)); }
+}
+
+/* --- Stepper Timeline --- */
+.tracker-stepper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  margin: 15px 0 20px 0;
+  padding: 0 10px;
+}
+
+.stepper-connector {
+  position: absolute;
+  top: 15px;
+  left: 30px;
+  right: 30px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  z-index: 1;
+}
+
+body.light-theme .stepper-connector {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.stepper-connector-active {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.5s ease;
+}
+
+.stepper-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.stepper-bubble {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: all 0.4s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.stepper-step.active .stepper-bubble {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(255, 90, 31, 0.1);
+  box-shadow: 0 0 10px rgba(255, 90, 31, 0.4);
+  animation: bubblePulse 1.5s infinite alternate ease-in-out;
+}
+
+.stepper-step.completed .stepper-bubble {
+  border-color: var(--success);
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.stepper-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 6px;
+  color: var(--muted);
+  transition: color 0.4s ease;
+  text-align: center;
+}
+
+.stepper-step.active .stepper-label {
+  color: var(--text);
+}
+
+.stepper-step.completed .stepper-label {
+  color: var(--success);
+}
+
+@keyframes bubblePulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.08); }
+}
+
+/* --- Contextual Voice Command Guide --- */
+.voice-guide-container {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 20px;
+}
+
+.voice-guide-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.voice-guide-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voice-guide-chip {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.voice-guide-chip:hover {
+  background: rgba(255, 90, 31, 0.08);
+  border-color: rgba(255, 90, 31, 0.3);
+  transform: translateX(2px);
+}
+
