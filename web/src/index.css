@@ -1,7 +1,7 @@
 /* --- Google Fonts --- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
 
-/* --- Root Design Tokens --- */
+/* --- Root Design Tokens (Dark Theme) --- */
 :root {
   --primary: #FF5A1F;
   --primary-deep: #C8390B;
@@ -19,6 +19,42 @@
   --font-heading: 'Outfit', sans-serif;
   --font-body: 'Inter', sans-serif;
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  --header-bg: rgba(14, 15, 18, 0.85);
+  --dropdown-bg: #16181C;
+  --card-cover-bg: linear-gradient(135deg, #24262A, #16181C);
+  --card-cover-text: rgba(255, 255, 255, 0.08);
+  --tracker-bg: rgba(22, 30, 46, 0.7);
+  --tracker-border: rgba(59, 130, 246, 0.25);
+  --gps-bg: #0B0F19;
+  --dev-bg: #181F2F;
+  --dev-border: #2B374D;
+  --dev-text: #94A3B8;
+}
+
+/* --- Light Theme Overrides --- */
+body.light-theme {
+  --bg: #F8F9FA;
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-border: rgba(0, 0, 0, 0.08);
+  --text: #1F2937;
+  --muted: #4B5563;
+  --success: #16A34A;
+  --error: #DC2626;
+  --shadow: rgba(0, 0, 0, 0.06);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.06);
+
+  --header-bg: rgba(248, 249, 250, 0.85);
+  --dropdown-bg: #FFFFFF;
+  --card-cover-bg: linear-gradient(135deg, #E5E7EB, #F3F4F6);
+  --card-cover-text: rgba(0, 0, 0, 0.05);
+  --tracker-bg: rgba(219, 234, 254, 0.65);
+  --tracker-border: rgba(59, 130, 246, 0.15);
+  --gps-bg: #F3F4F6;
+  --dev-bg: #F3F4F6;
+  --dev-border: #E5E7EB;
+  --dev-text: #4B5563;
 }
 
 /* --- Base Resets --- */
@@ -35,6 +71,7 @@ body {
   font-size: 15px;
   line-height: 1.6;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1, h2, h3, h4, h5 {
@@ -53,11 +90,12 @@ h1, h2, h3, h4, h5 {
 .main-header {
   border-bottom: 1px solid var(--surface-border);
   padding: 16px 0;
-  background-color: rgba(14, 15, 18, 0.85);
+  background-color: var(--header-bg);
   backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: background-color 0.3s ease;
 }
 
 .header-flex {
@@ -180,7 +218,7 @@ h1, h2, h3, h4, h5 {
   position: absolute;
   top: 36px;
   right: 0;
-  background: #16181C;
+  background: var(--dropdown-bg);
   border: 1px solid var(--surface-border);
   border-radius: 8px;
   width: 70px;
@@ -299,7 +337,10 @@ h1, h2, h3, h4, h5 {
 
 .restaurant-cover {
   height: 160px;
-  background: linear-gradient(135deg, #24262A, #16181C);
+  background-image: var(--card-cover-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -310,14 +351,16 @@ h1, h2, h3, h4, h5 {
   font-size: 24px;
   font-weight: 800;
   font-family: var(--font-heading);
-  color: rgba(255,255,255,0.08);
+  color: var(--card-cover-text);
 }
 
 .restaurant-tag {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: var(--bg);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  backdrop-filter: blur(4px);
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 11px;
@@ -516,11 +559,12 @@ h1, h2, h3, h4, h5 {
 
 /* --- Live Tracking Component --- */
 .tracker-card {
-  background: rgba(22, 30, 46, 0.7);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: var(--tracker-bg);
+  border: 1px solid var(--tracker-border);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 20px;
+  transition: all 0.3s ease;
 }
 
 .tracker-title {
@@ -532,7 +576,7 @@ h1, h2, h3, h4, h5 {
 
 .tracker-progress-bg {
   height: 5px;
-  background: #0F172A;
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 12px;
@@ -552,7 +596,7 @@ h1, h2, h3, h4, h5 {
 
 .tracker-label {
   font-size: 11px;
-  color: #9CA3AF;
+  color: var(--muted);
 }
 
 .tracker-value {
@@ -562,12 +606,14 @@ h1, h2, h3, h4, h5 {
 }
 
 .rider-gps-box {
-  background: #0B0F19;
+  background: var(--gps-bg);
+  border: 1px solid var(--surface-border);
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 11px;
   color: var(--accent);
   font-family: monospace;
+  transition: all 0.3s ease;
 }
 
 /* --- Premium Shopping Cart --- */
@@ -688,18 +734,19 @@ h1, h2, h3, h4, h5 {
   bottom: 0;
   left: 0;
   right: 0;
-  background: #181F2F;
-  border-top: 1px solid #2B374D;
+  background: var(--dev-bg);
+  border-top: 1px solid var(--dev-border);
   padding: 12px 20px;
   border-bottom-left-radius: 20px;
   border-bottom-right-radius: 20px;
+  transition: all 0.3s ease;
 }
 
 .dev-header {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #94A3B8;
+  color: var(--dev-text);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -727,4 +774,105 @@ h1, h2, h3, h4, h5 {
 
 .dev-btn-reset {
   background: #475569;
+}
+
+/* --- Theme Toggle Button --- */
+.theme-toggle-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--surface-border);
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary);
+}
+
+body.light-theme .theme-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* --- Mobile & Tablet Responsiveness --- */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 36px;
+  }
+  
+  .hero-subtitle {
+    font-size: 15px;
+    margin-bottom: 24px;
+  }
+  
+  .hero-section {
+    padding: 50px 0;
+  }
+  
+  .section-title {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .cuisines-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+    margin-bottom: 30px;
+  }
+  
+  .cuisine-card {
+    padding: 14px;
+  }
+  
+  .cuisine-icon {
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+  
+  .restaurants-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  
+  .dashboard-panel {
+    width: 100vw;
+    max-width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--glass-border);
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 16px;
+  }
+  
+  .hero-title {
+    font-size: 28px;
+  }
+  
+  .brand-logo {
+    font-size: 20px;
+  }
+  
+  .badge-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .dashboard-panel {
+    padding: 16px;
+  }
+
+  .dev-drawer {
+    padding: 10px 14px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 }

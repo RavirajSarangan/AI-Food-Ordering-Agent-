@@ -14,7 +14,9 @@ import {
   Star, 
   Clock, 
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 // --- Convex Imports ---
@@ -58,8 +60,13 @@ export default function App() {
 function MainApp({ isConvex }) {
   const convex = isConvex ? useConvex() : null;
 
+  const [theme, setTheme] = useState('dark');
   const [language, setLanguage] = useState('EN');
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+
+  useEffect(() => {
+    document.body.className = theme === 'dark' ? '' : 'light-theme';
+  }, [theme]);
 
   // Voice Agent State
   // 'idle' | 'listening' | 'thinking' | 'speaking' | 'tool_running' | 'success' | 'error'
@@ -73,7 +80,7 @@ function MainApp({ isConvex }) {
       case 'tool_running': return COLORS.accent;
       case 'success': return COLORS.success;
       case 'error': return COLORS.error;
-      default: return '#374151';
+      default: return theme === 'dark' ? '#374151' : '#E5E7EB';
     }
   };
 
@@ -486,6 +493,15 @@ function MainApp({ isConvex }) {
                 </div>
               )}
             </div>
+
+            {/* Theme Toggle Button */}
+            <button 
+              className="theme-toggle-btn"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            >
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
           </div>
         </div>
       </header>
@@ -536,8 +552,7 @@ function MainApp({ isConvex }) {
         <div className="restaurants-grid">
           
           <div className="restaurant-card" onClick={() => setIsDrawerOpen(true)}>
-            <div className="restaurant-cover">
-              <span className="restaurant-cover-name">ABC Biryani</span>
+            <div className="restaurant-cover" style={{ backgroundImage: "url('/abc_biryani_cover.png')" }}>
               <span className="restaurant-tag">Promo</span>
             </div>
             <div className="restaurant-content">
@@ -553,8 +568,7 @@ function MainApp({ isConvex }) {
           </div>
 
           <div className="restaurant-card" onClick={() => setIsDrawerOpen(true)}>
-            <div className="restaurant-cover">
-              <span className="restaurant-cover-name">Spice Garden</span>
+            <div className="restaurant-cover" style={{ backgroundImage: "url('/spice_garden_cover.png')" }}>
               <span className="restaurant-tag">Sri Lankan</span>
             </div>
             <div className="restaurant-content">
