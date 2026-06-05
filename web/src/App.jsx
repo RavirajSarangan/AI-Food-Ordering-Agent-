@@ -22,7 +22,7 @@ import { ConvexProvider, ConvexReactClient, useConvex, useQuery } from "convex/r
 import { api } from "../../convex/_generated/api";
 
 // --- ElevenLabs Browser SDK ---
-import { useConversation } from "@elevenlabs/react";
+import { useConversation, ConversationProvider } from "@elevenlabs/react";
 
 const VITE_CONVEX_URL = import.meta.env.VITE_CONVEX_URL || "https://dutiful-tapir-821.convex.cloud";
 
@@ -42,11 +42,17 @@ export default function App() {
     const convexClient = new ConvexReactClient(VITE_CONVEX_URL);
     return (
       <ConvexProvider client={convexClient}>
-        <MainApp isConvex={true} />
+        <ConversationProvider>
+          <MainApp isConvex={true} />
+        </ConversationProvider>
       </ConvexProvider>
     );
   }
-  return <MainApp isConvex={false} />;
+  return (
+    <ConversationProvider>
+      <MainApp isConvex={false} />
+    </ConversationProvider>
+  );
 }
 
 function MainApp({ isConvex }) {
