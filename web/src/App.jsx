@@ -26,6 +26,17 @@ import { useConversation } from "@elevenlabs/react";
 
 const VITE_CONVEX_URL = import.meta.env.VITE_CONVEX_URL || "https://dutiful-tapir-821.convex.cloud";
 
+const COLORS = {
+  primary: '#FF5A1F',
+  primaryDeep: '#C8390B',
+  accent: '#FFB703',
+  bg: '#0E0F12',
+  text: '#FFFFFF',
+  muted: '#9AA0A6',
+  success: '#22C55E',
+  error: '#EF4444',
+};
+
 export default function App() {
   if (VITE_CONVEX_URL) {
     const convexClient = new ConvexReactClient(VITE_CONVEX_URL);
@@ -44,6 +55,22 @@ function MainApp({ isConvex }) {
   const [language, setLanguage] = useState('EN');
   const [langMenuOpen, setLangMenuOpen] = useState(false);
 
+  // Voice Agent State
+  // 'idle' | 'listening' | 'thinking' | 'speaking' | 'tool_running' | 'success' | 'error'
+  const [voiceState, setVoiceState] = useState('idle');
+
+  const getOrbColor = () => {
+    switch (voiceState) {
+      case 'listening': return COLORS.primary;
+      case 'speaking': return '#818CF8';
+      case 'thinking':
+      case 'tool_running': return COLORS.accent;
+      case 'success': return COLORS.success;
+      case 'error': return COLORS.error;
+      default: return '#374151';
+    }
+  };
+
   // Seeding State
   const [seeding, setSeeding] = useState(false);
 
@@ -54,9 +81,6 @@ function MainApp({ isConvex }) {
   // Voice Assistant Drawer
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
-  // Voice Agent State
-  // 'idle' | 'listening' | 'thinking' | 'speaking' | 'tool_running' | 'success' | 'error'
-  const [voiceState, setVoiceState] = useState('idle');
   const [caption, setCaption] = useState("Click the microphone to start ordering...");
   const [transcript, setTranscript] = useState("");
 

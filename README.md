@@ -1,13 +1,13 @@
 # FoodHub AI Voice Ordering Assistant
 
-> A voice-first, multi-language food ordering layer built on top of Convex, Expo React Native, and FastAPI, powered by ElevenLabs Agents.
+> A voice-first, multi-language food ordering layer built on top of Convex, Vite React Web Client, and FastAPI, powered by ElevenLabs Agents.
 
 ---
 
 <div align="center">
 
 [![Convex Database](https://img.shields.io/badge/Database-Convex-06B6D4?style=for-the-badge&logo=convex)](https://convex.dev)
-[![React Native Expo](https://img.shields.io/badge/Mobile-React_Native_Expo-000000?style=for-the-badge&logo=expo)](https://expo.dev)
+[![React Web Client](https://img.shields.io/badge/Web-Vite_React-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
 [![FastAPI AI Service](https://img.shields.io/badge/AI_Service-FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
 [![ElevenLabs Agent](https://img.shields.io/badge/Voice_Agent-ElevenLabs-E11D48?style=for-the-badge)](https://elevenlabs.io)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%7C%20TA%20%7C%20SI-FFB703?style=for-the-badge)](#)
@@ -32,9 +32,9 @@ FoodHub Voice utilizes **Convex** for real-time data sync, database queries, and
 
 ```
                 ┌────────────────────────────────────────┐
-                │        React Native Mobile App         │
-                │  - M3 Paper UI (ripple buttons, cards) │
-                │  - Voice orb (pulses & rotate states)  │
+                │          Vite React Web App            │
+                │  - Premium dark-theme glassmorphism    │
+                │  - Live Voice Orb (ElevenLabs React)   │
                 │  - Real-time tracker (useQuery sync)   │
                 └───────────────┬────────────────────────┘
                                 │  1. Subscribes & Mutates
@@ -121,7 +121,7 @@ The database is structured in `convex/schema.js` and enforces strict type valida
 
 ## 3. Voice Orb & UI Animations
 
-The **Voice Orb** is a fluid layout state-machine transitioning between 7 communication states. Animations are handled via the React Native `Animated` driver to guarantee high frame rates:
+The **Voice Orb** is a fluid layout state-machine transitioning between 7 communication states. Animations are handled via CSS3 transitions and GPU-accelerated keyframe animations to guarantee smooth 60fps rendering in the browser:
 
 | State | Orb Visual | Haptic / Motion | Purpose |
 | :--- | :--- | :--- | :--- |
@@ -137,7 +137,7 @@ The **Voice Orb** is a fluid layout state-machine transitioning between 7 commun
 When a voice order is confirmed:
 1. Convex triggers the `orders:createOrder` mutation.
 2. An internal Convex scheduler (`ctx.scheduler.runAfter`) automatically queue status updates in the future (30s ➔ 60s ➔ 90s).
-3. The React Native app's `<ConvexOrderTracker>` listens to `getOrderStatus` via `useQuery` subscription. As status and coordinates change in the cloud, the progress bars and GPS markers glide smoothly in the UI without manual re-querying.
+3. The React web client's `<ConvexOrderTracker>` listens to `getOrderStatus` via `useQuery` subscription. As status and coordinates change in the cloud, the progress bars and GPS markers glide smoothly in the browser DOM without manual page reloads or polling.
 
 ---
 
@@ -167,10 +167,10 @@ CONVEX_DEPLOYMENT=dev:dutiful-tapir-821
 CONVEX_DEPLOY_KEY=dev:dutiful-tapir-821|eyJ2MiI6IjAzZWE0ODhjNGE2YjQzODhhODhiZjRlNmQ1MWE3MDJjIn0=
 ```
 
-In the mobile client directory, connect the app:
+In the web client directory, connect the app:
 ```bash
-# In /mobile/.env
-EXPO_PUBLIC_CONVEX_URL=https://dutiful-tapir-821.convex.cloud
+# In /web/.env
+VITE_CONVEX_URL=https://dutiful-tapir-821.convex.cloud
 ```
 
 ### 1. Launch Convex Serverless Dev
@@ -193,9 +193,9 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-### 4. Launch Mobile Expo Go
+### 4. Launch Vite Web Client
 ```bash
-cd mobile
-npm run start
+cd web
+npm run dev
 ```
-Scan the QR code in your console using the **Expo Go** application on iOS or Android. You can test the dynamic voice orb state transitions and cart sync using the simulator drawer on the bottom of the interface!
+Open your browser and navigate to `http://127.0.0.1:8081` to view the application. You can test the dynamic voice orb state transitions, real-time Convex cart sync, and live rider tracking using the interactive simulator drawer at the bottom of the interface!
