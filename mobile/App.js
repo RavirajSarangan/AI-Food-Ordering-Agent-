@@ -9,7 +9,7 @@ import {
   Easing
 } from 'react-native';
 import { 
-  Provider as PaperProvider, 
+  PaperProvider, 
   MD3DarkTheme, 
   Text as PaperText,
   Card as PaperCard,
