@@ -6,7 +6,8 @@ import {
   SafeAreaView,
   StatusBar,
   Animated,
-  Easing
+  Easing,
+  TouchableOpacity
 } from 'react-native';
 import { 
   PaperProvider, 
