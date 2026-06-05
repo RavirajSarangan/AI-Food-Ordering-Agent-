@@ -4,10 +4,21 @@ from typing import List, Optional
 import httpx
 import os
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(
     title="FoodHub AI Service",
     description="FastAPI service for food recommendations, upselling, and nutrition calculations",
     version="1.0.0"
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 BACKEND_URL = os.getenv("BACKEND_URL", "https://dutiful-tapir-821.convex.cloud")

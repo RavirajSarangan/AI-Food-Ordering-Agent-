@@ -65,6 +65,8 @@ function MainApp({ isConvex }) {
   const [theme, setTheme] = useState('dark');
   const [language, setLanguage] = useState('EN');
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundVolume, setSoundVolume] = useState(0.15);
 
   useEffect(() => {
     document.body.className = theme === 'dark' ? '' : 'light-theme';
@@ -588,44 +590,106 @@ function MainApp({ isConvex }) {
         </div>
       </section>
 
-      {/* --- RESTAURANTS LIST --- */}
-      <section className="container">
-        <h2 className="section-title">Popular Restaurants</h2>
-        <div className="restaurants-grid">
+      {/* --- LANDING MAIN GRID --- */}
+      <section className="container" style={{ marginBottom: '45px' }}>
+        <div className="landing-grid">
           
-          <div className="restaurant-card" onClick={() => setIsDrawerOpen(true)}>
-            <div className="restaurant-cover" style={{ backgroundImage: "url('/abc_biryani_cover.png')" }}>
-              <span className="restaurant-tag">Promo</span>
-            </div>
-            <div className="restaurant-content">
-              <h3>ABC Biryani House</h3>
-              <div className="restaurant-info-row">
-                <span className="restaurant-rating">
-                  <Star size={12} fill="#FFB703" />
-                  4.5 (120+ ratings)
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Biryani • Rs. 1000 min</span>
+          {/* Left: Popular Restaurants */}
+          <div>
+            <h2 className="section-title">Popular Restaurants</h2>
+            <div className="restaurants-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginBottom: '0px' }}>
+              
+              <div className="restaurant-card" onClick={() => setIsDrawerOpen(true)}>
+                <div className="restaurant-cover" style={{ backgroundImage: "url('/abc_biryani_cover.png')" }}>
+                  <span className="restaurant-tag">Promo</span>
+                </div>
+                <div className="restaurant-content">
+                  <h3>ABC Biryani House</h3>
+                  <div className="restaurant-info-row">
+                    <span className="restaurant-rating">
+                      <Star size={12} fill="#FFB703" />
+                      4.5 (120+ ratings)
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Biryani • Rs. 1000 min</span>
+                  </div>
+                </div>
               </div>
+
+              <div className="restaurant-card" onClick={() => setIsDrawerOpen(true)}>
+                <div className="restaurant-cover" style={{ backgroundImage: "url('/spice_garden_cover.png')" }}>
+                  <span className="restaurant-tag">Sri Lankan</span>
+                </div>
+                <div className="restaurant-content">
+                  <h3>Spice Garden</h3>
+                  <div className="restaurant-info-row">
+                    <span className="restaurant-rating">
+                      <Star size={12} fill="#FFB703" />
+                      4.2 (85+ ratings)
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Kottu • Rs. 700 min</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
 
-          <div className="restaurant-card" onClick={() => setIsDrawerOpen(true)}>
-            <div className="restaurant-cover" style={{ backgroundImage: "url('/spice_garden_cover.png')" }}>
-              <span className="restaurant-tag">Sri Lankan</span>
-            </div>
-            <div className="restaurant-content">
-              <h3>Spice Garden</h3>
-              <div className="restaurant-info-row">
-                <span className="restaurant-rating">
-                  <Star size={12} fill="#FFB703" />
-                  4.2 (85+ ratings)
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Kottu • Rs. 700 min</span>
-              </div>
-            </div>
+          {/* Right: AI Advisor & Sound Center */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <AIRecommendationsWidget 
+              isConvex={isConvex} 
+              onSelectItem={async (item) => {
+                // Auto seed database if user is null
+                let activeUserId = userId;
+                if (isConvex && !activeUserId) {
+                  try {
+                    const seedResult = await convex.mutation(api.menu.seed);
+                    activeUserId = seedResult.userId;
+                    setUserId(activeUserId);
+                  } catch (e) {
+                    console.error("Auto seed failed on select:", e);
+                  }
+                }
+                
+                // Add item to cart
+                let itemConfig = {
+                  menuItemId: item.menuItemId || "dummy_biryani_id",
+                  name: item.name,
+                  size: "regular",
+                  price: item.basePrice
+                };
+                
+                if (isConvex) {
+                  setRestaurantId(item.restaurant?.id || null);
+                  setRestaurantName(item.restaurant?.name || "");
+                }
+                
+                handleAddToCart(itemConfig);
+                setCaption(`Added recommended ${item.name} to cart.`);
+                setIsDrawerOpen(true); // Open voice assistant
+              }}
+            />
+            
+            <SoundCenterWidget 
+              soundEnabled={soundEnabled}
+              setSoundEnabled={setSoundEnabled}
+              soundVolume={soundVolume}
+              setSoundVolume={setSoundVolume}
+            />
           </div>
 
         </div>
+      </section>
+
+      {/* --- VOICE CHEAT SHEET --- */}
+      <section className="container" style={{ marginBottom: '60px' }}>
+        <VoiceCheatSheet 
+          onTryPhrase={(phrase) => {
+            setIsDrawerOpen(true);
+            setTranscript(phrase);
+            setCaption("Ready to speak. Tap the microphone or tell the assistant: " + phrase);
+          }}
+        />
       </section>
 
       {/* --- VOICE ASSISTANT DRAWER PANEL --- */}
@@ -679,7 +743,11 @@ function MainApp({ isConvex }) {
 
               {/* Real-time Rider Tracking */}
               {isConvex && activeOrderId && (
-                <ConvexOrderTracker orderId={activeOrderId} />
+                <ConvexOrderTracker 
+                  orderId={activeOrderId} 
+                  soundEnabled={soundEnabled} 
+                  soundVolume={soundVolume} 
+                />
               )}
 
               {/* Dynamic Contextual Voice Guide */}
@@ -777,7 +845,7 @@ function MainApp({ isConvex }) {
 }
 
 // Sound synthesis chime helper
-const playStatusSound = (status) => {
+const playStatusSound = (status, volume = 0.15) => {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
@@ -788,7 +856,7 @@ const playStatusSound = (status) => {
       const gain = ctx.createGain();
       osc.type = type;
       osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime + startTime);
+      gain.gain.setValueAtTime(volume, ctx.currentTime + startTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -832,16 +900,18 @@ const getDistanceKm = (lat1, lon1, lat2, lon2) => {
 };
 
 // --- Convex Real-time Order Tracking Subscription Component ---
-function ConvexOrderTracker({ orderId }) {
+function ConvexOrderTracker({ orderId, soundEnabled, soundVolume }) {
   const order = useQuery(api.orders.getOrderStatus, { orderId });
   const [lastStatus, setLastStatus] = React.useState(null);
 
   React.useEffect(() => {
     if (order && order.status && order.status !== lastStatus) {
       setLastStatus(order.status);
-      playStatusSound(order.status);
+      if (soundEnabled) {
+        playStatusSound(order.status, soundVolume);
+      }
     }
-  }, [order?.status, lastStatus]);
+  }, [order?.status, lastStatus, soundEnabled, soundVolume]);
 
   if (!order) {
     return (
@@ -1155,6 +1225,264 @@ function ContextualVoiceGuide({ cart }) {
         {suggestions.map((s, idx) => (
           <div key={idx} className="voice-guide-chip">
             🎤 "{s}"
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Dynamic AI Recommendations Component ---
+function AIRecommendationsWidget({ isConvex, onSelectItem }) {
+  const [mood, setMood] = useState("spicy");
+  const [budget, setBudget] = useState(1500);
+  const [dietary, setDietary] = useState("non-veg");
+  const [recommendations, setRecommendations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchRecommendations = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("http://127.0.0.1:8000/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mood,
+          budget: parseFloat(budget),
+          dietary
+        })
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch recommendations");
+      const data = await response.json();
+      if (data.success) {
+        setRecommendations(data.recommendations);
+      } else {
+        throw new Error(data.error || "No recommendations found");
+      }
+    } catch (e) {
+      console.error(e);
+      setError(e.message);
+      // Fallback local mockup matching Sri Lankan seeded options
+      const mocks = [
+        { name: "Chicken Biryani", basePrice: 1000, restaurant: { name: "ABC Biryani House" }, tags: ["spicy", "chicken"] },
+        { name: "Mutton Biryani", basePrice: 1400, restaurant: { name: "ABC Biryani House" }, tags: ["spicy", "mutton"] },
+        { name: "Chicken Kottu", basePrice: 850, restaurant: { name: "Spice Garden" }, tags: ["spicy", "chicken"] },
+        { name: "Egg Kottu", basePrice: 700, restaurant: { name: "Spice Garden" }, tags: ["spicy", "egg", "vegetarian"] },
+        { name: "Coke", basePrice: 200, restaurant: { name: "ABC Biryani House" }, tags: ["drink", "beverage", "cold"] }
+      ];
+      
+      const filtered = mocks.filter(item => {
+        const matchesBudget = item.basePrice <= budget;
+        const matchesDietary = dietary === "veg" ? item.tags.includes("vegetarian") : true;
+        const matchesMood = mood === "spicy" ? item.tags.includes("spicy") : mood === "cold" ? item.tags.includes("cold") : true;
+        return matchesBudget && matchesDietary && matchesMood;
+      });
+      setRecommendations(filtered.slice(0, 3));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, [mood, budget, dietary]);
+
+  return (
+    <div className="recommend-widget-card">
+      <h3 style={{ fontSize: '15px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-heading)' }}>
+        ✨ AI Food Advisor
+      </h3>
+      <p className="recommend-header-desc">Dynamic up-to-date suggestions from our FastAPI advisor.</p>
+
+      <div className="recommend-form-group">
+        <div className="recommend-label">Mood / Style</div>
+        <div className="mood-selector">
+          {["spicy", "heavy", "sweet", "cold"].map(m => (
+            <button
+              key={m}
+              className={`mood-chip ${mood === m ? "selected" : ""}`}
+              onClick={() => setMood(m)}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="recommend-form-group">
+        <div className="recommend-label">Budget (Rs. {budget})</div>
+        <div className="budget-input-wrapper">
+          <input
+            type="range"
+            min="200"
+            max="3000"
+            step="50"
+            value={budget}
+            onChange={(e) => setBudget(parseInt(e.target.value))}
+            className="budget-slider"
+          />
+          <div className="budget-value-badge">Rs. {budget.toLocaleString()}</div>
+        </div>
+      </div>
+
+      <div className="recommend-form-group">
+        <div className="recommend-label">Dietary Preference</div>
+        <div style={{ display: 'flex', gap: '15px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name="dietary"
+              value="non-veg"
+              checked={dietary === "non-veg"}
+              onChange={() => setDietary("non-veg")}
+              style={{ accentColor: COLORS.primary }}
+            />
+            Non-Veg
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name="dietary"
+              value="veg"
+              checked={dietary === "veg"}
+              onChange={() => setDietary("veg")}
+              style={{ accentColor: COLORS.primary }}
+            />
+            Veg
+          </label>
+        </div>
+      </div>
+
+      <div style={{ marginTop: '16px' }}>
+        <div className="recommend-label" style={{ marginBottom: '8px' }}>Suggestions</div>
+        {loading ? (
+          <div style={{ padding: '10px 0', fontSize: '12px', color: 'var(--muted)' }}>Advising best cuisines...</div>
+        ) : recommendations.length === 0 ? (
+          <div style={{ padding: '10px 0', fontSize: '12px', color: 'var(--muted)' }}>No matching dishes found. Try a higher budget!</div>
+        ) : (
+          <div className="recommendations-result-list">
+            {recommendations.map((item, idx) => (
+              <div 
+                key={idx} 
+                className="recommend-item-card"
+                onClick={() => onSelectItem(item)}
+                title="Click to add to cart and start ordering"
+              >
+                <div className="recommend-item-info">
+                  <h4 style={{ color: 'var(--text)' }}>{item.name}</h4>
+                  <p>{item.restaurant?.name || "ABC Kitchen"}</p>
+                </div>
+                <span className="recommend-item-price">Rs. {item.basePrice.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Sound Center Component ---
+function SoundCenterWidget({ soundEnabled, setSoundEnabled, soundVolume, setSoundVolume }) {
+  const triggerSound = (status) => {
+    playStatusSound(status, soundVolume);
+  };
+
+  return (
+    <div className="sound-center-card">
+      <h3 style={{ fontSize: '15px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-heading)' }}>
+        🔊 Sound UI Center
+      </h3>
+      <p className="recommend-header-desc">Customize or test synthesized voice order chimes.</p>
+
+      <div className="sound-toggle-row">
+        <span style={{ fontSize: '13px', fontWeight: '500' }}>Sound Feedback</span>
+        <input
+          type="checkbox"
+          checked={soundEnabled}
+          onChange={(e) => setSoundEnabled(e.target.checked)}
+          style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: COLORS.primary }}
+        />
+      </div>
+
+      <div className="sound-slider-group">
+        <div className="recommend-label" style={{ marginBottom: '8px' }}>Volume ({(soundVolume * 100).toFixed(0)}%)</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <input
+            type="range"
+            min="0"
+            max="0.5"
+            step="0.05"
+            value={soundVolume}
+            disabled={!soundEnabled}
+            onChange={(e) => setSoundVolume(parseFloat(e.target.value))}
+            style={{ flex: 1, accentColor: COLORS.primary }}
+          />
+        </div>
+      </div>
+
+      <div className="sound-test-grid">
+        <button className="sound-test-btn" onClick={() => triggerSound("Placed")}>
+          Placed 🔔
+        </button>
+        <button className="sound-test-btn" onClick={() => triggerSound("Preparing")}>
+          Kitchen 🔥
+        </button>
+        <button className="sound-test-btn" onClick={() => triggerSound("OnTheWay")}>
+          Transit 🛵
+        </button>
+        <button className="sound-test-btn" onClick={() => triggerSound("Delivered")}>
+          Done 🎉
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// --- Voice Cheat Sheet Component ---
+function VoiceCheatSheet({ onTryPhrase }) {
+  const categories = [
+    {
+      icon: "🍛",
+      title: "Search Foods",
+      phrase: "Search for spiciest biryani",
+      command: "Show me the spiciest biryani recommendations"
+    },
+    {
+      icon: "🛒",
+      title: "Add to Cart",
+      phrase: "Order a kottu from Spice Garden",
+      command: "I'd like to order a regular Chicken Kottu from Spice Garden please"
+    },
+    {
+      icon: "🥤",
+      title: "Add complementary drink",
+      phrase: "Add a Coke to my order",
+      command: "Add a regular Coke to my order"
+    },
+    {
+      icon: "🥗",
+      title: "Macros & Calories",
+      phrase: "How many calories in Biryani?",
+      command: "Tell me the calories in Chicken Biryani"
+    }
+  ];
+
+  return (
+    <div className="cheat-sheet-section">
+      <h2 className="section-title">What can I say to the assistant?</h2>
+      <div className="cheat-sheet-grid">
+        {categories.map((c, idx) => (
+          <div key={idx} className="cheat-card" onClick={() => onTryPhrase(c.command)}>
+            <div className="cheat-card-icon">{c.icon}</div>
+            <div className="cheat-card-title">{c.title}</div>
+            <div className="cheat-card-phrase">"{c.phrase}"</div>
+            <button className="cheat-card-btn">
+              Try Phrase 🎤
+            </button>
           </div>
         ))}
       </div>
