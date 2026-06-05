@@ -153,7 +153,7 @@ function MainApp({ isConvex }) {
 
     try {
       // Call our Convex HTTP endpoint to get the signed URL
-      const response = await fetch(`${VITE_CONVEX_URL}/api/agent/session`, {
+      const response = await fetch(`${VITE_CONVEX_URL.replace(".cloud", ".site")}/api/agent/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
