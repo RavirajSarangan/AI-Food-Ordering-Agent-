@@ -175,7 +175,11 @@ function MainApp({ isConvex }) {
       // Request browser mic permissions and connect session
       await navigator.mediaDevices.getUserMedia({ audio: true });
       await conversation.startSession({
-        signedUrl: data.signedUrl
+        signedUrl: data.signedUrl,
+        dynamicVariables: {
+          userId: userId || "anonymous_web_user",
+          userName: "Web Guest"
+        }
       });
     } catch (e) {
       console.error(e);

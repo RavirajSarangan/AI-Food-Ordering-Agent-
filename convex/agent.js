@@ -20,19 +20,12 @@ export const getSessionUrl = action({
 
     try {
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
+        `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${agentId}`,
         {
-          method: "POST",
+          method: "GET",
           headers: {
-            "xi-api-key": apiKey,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            dynamic_variables: {
-              userId: args.userId || "anonymous_user",
-              userName: args.userName || "Customer"
-            }
-          })
+            "xi-api-key": apiKey
+          }
         }
       );
 
